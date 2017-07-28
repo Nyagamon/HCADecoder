@@ -1,4 +1,4 @@
-# HCADecoder
+# HCAデコーダ
 
 # HCAファイルのデコード方法
 
