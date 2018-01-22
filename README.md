@@ -4,9 +4,13 @@
  - Multithreaded CRI HCA decoding (much higher performance)
  - Fixed data chunk size
  - Fixed smpl chunk loop points
-
-# To-do
- - Fix looping (it's slightly off)
+ - Fixed looping (original cut samples off the end)
+ 
+# Changes in JP
+ - マルチスレッド化
+ - dataチャンク修正
+ - smplチャンク修正
+ - ループ修正
 
 # HCAファイルのデコード方法
 
