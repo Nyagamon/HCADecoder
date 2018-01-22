@@ -177,8 +177,12 @@ void HCADecodeService::Main_Thread()
         mutex.unlock();
         for (unsigned int i = 0; i < numthreads; ++i)
         {
-            while (workingblocks[i] != -1); // busy wait until threads are finished
+			mainsem.wait();
         }
+		for (unsigned int i = 0; i < numthreads; ++i)
+		{
+			mainsem.notify();
+		}
         finsem.notify();
     }
     for (unsigned int i = 0; i < numthreads; ++i)
