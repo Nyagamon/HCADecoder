@@ -1,5 +1,13 @@
 # HCAデコーダ
 
+# Changes to original
+ - Multithreaded CRI HCA decoding (much higher performance)
+ - Fixed data chunk size
+ - Fixed smpl chunk loop points
+
+# To-do
+ - Fix looping (it's slightly off)
+
 # HCAファイルのデコード方法
 
   HCAファイルをhca.exeにドラッグ＆ドロップすると、同じファイル名のWAVEファイルができます。
