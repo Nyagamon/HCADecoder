@@ -4,60 +4,10 @@
 //--------------------------------------------------
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include "clHCA.h"
-
-//--------------------------------------------------
-// 文字列を10進数とみなして数値に変換(簡易版)
-//--------------------------------------------------
-int atoi(const char *s) {
-	int r = 0;
-	bool sign = false; if (*s == '+') { s++; }
-	else if (*s == '-') { sign = true; s++; }
-	while (*s) {
-		if (*s >= '0'&&*s <= '9')r = r * 10 + (*s - '0');
-		else break;
-		s++;
-	}
-	return sign ? -r : r;
-}
-float atof(const char *s) {
-	int r1 = 0, r2 = 0, c = 1;
-	bool sign = false; if (*s == '+') { s++; }
-	else if (*s == '-') { sign = true; s++; }
-	while (*s) {
-		if (*s >= '0'&&*s <= '9')r1 = r1 * 10 + (*s - '0');
-		else break;
-		s++;
-	}
-	if (*s == '.') {
-		s++;
-		while (*s) {
-			if (*s >= '0'&&*s <= '9') { r2 = r2 * 10 + (*s - '0'); c *= 10; }
-			else break;
-			s++;
-		}
-	}
-	float r = r1 + ((c>0) ? r2 / (float)c : 0);
-	return sign ? -r : r;
-}
-
-//--------------------------------------------------
-// 文字列を16進数とみなして数値に変換
-//--------------------------------------------------
-int atoi16(const char *s) {
-	int r = 0;
-	bool sign = false; if (*s == '+') { s++; }
-	else if (*s == '-') { sign = true; s++; }
-	while (*s) {
-		if (*s >= '0'&&*s <= '9')r = (r << 4) | (*s - '0');
-		else if (*s >= 'A'&&*s <= 'F')r = (r << 4) | (*s - 'A' + 10);
-		else if (*s >= 'a'&&*s <= 'f')r = (r << 4) | (*s - 'a' + 10);
-		else break;
-		s++;
-	}
-	return sign ? -r : r;
-}
+#include "HCADecodeService.h"
 
 //--------------------------------------------------
 // メイン
@@ -69,8 +19,8 @@ int main(int argc, char *argv[]) {
 	char *filenameOut = NULL;
 	//bool decodeFlg=false;
 	float volume = 1;
-	unsigned int ciphKey1 = 0xE0748978;
-	unsigned int ciphKey2 = 0xCF222F1F;
+	unsigned int ciphKey1 = 0xBC731A85;
+	unsigned int ciphKey2 = 0x0002B875;
 	int mode = 16;
 	int loop = 0;
 	bool info = false;
@@ -81,8 +31,8 @@ int main(int argc, char *argv[]) {
 			case 'o':if (i + 1<argc) { filenameOut = argv[++i]; }break;
 				//case 'd':decodeFlg=true;break;
 			case 'v':volume = (float)atof(argv[++i]); break;
-			case 'a':if (i + 1<argc) { ciphKey1 = atoi16(argv[++i]); }break;
-			case 'b':if (i + 1<argc) { ciphKey2 = atoi16(argv[++i]); }break;
+			case 'a':if (i + 1<argc) { ciphKey1 = strtoul(argv[++i], NULL, 16); }break;
+			case 'b':if (i + 1<argc) { ciphKey2 = strtoul(argv[++i], NULL, 16); }break;
 			case 'm':if (i + 1<argc) { mode = atoi(argv[++i]); }break;
 			case 'l':if (i + 1<argc) { loop = atoi(argv[++i]); }break;
 			case 'i':info = true; break;
@@ -93,6 +43,8 @@ int main(int argc, char *argv[]) {
 			argv[count++] = argv[i];
 		}
 	}
+
+	HCADecodeService dec{}; // Start decode service
 
 	//if(decodeFlg){
 
@@ -140,9 +92,27 @@ int main(int argc, char *argv[]) {
 		// デコード
 		else {
 			printf("%s をデコード中...\n", argv[i]);
-			clHCA hca(ciphKey1, ciphKey2);
-			if (!hca.DecodeToWavefile(argv[i], filenameOut, volume, mode, loop)) {
+			auto wavout = dec.decode(argv[i], 0, ciphKey1, ciphKey2, volume, mode, loop);
+			if (wavout.first == nullptr)
+			{
 				printf("Error: デコードに失敗しました。\n");
+			}
+			else
+			{
+				FILE* outfile;
+				if (fopen_s(&outfile, filenameOut, "wb"))
+				{
+					wavout.first; printf("Error: Failed to create WAVE file.\n");
+					dec.cancel_decode(wavout.first);
+					delete[] wavout.first;
+				}
+				else
+				{
+					dec.wait_on_request(wavout.first);
+					fwrite(wavout.first, sizeof(unsigned char), wavout.second, outfile);
+					delete[] wavout.first;
+					fclose(outfile);
+				}
 			}
 		}
 
