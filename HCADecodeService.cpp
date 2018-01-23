@@ -174,15 +174,11 @@ void HCADecodeService::Main_Thread()
             mainsem.notify();
             mutex.lock();
         }
-        mutex.unlock();
-        for (unsigned int i = 0; i < numthreads; ++i)
-        {
-			mainsem.wait();
-        }
 		for (unsigned int i = 0; i < numthreads; ++i)
 		{
-			mainsem.notify();
+			while (workingblocks[i] != -1); // busy wait for threads
 		}
+		mutex.unlock();
         finsem.notify();
     }
     for (unsigned int i = 0; i < numthreads; ++i)
